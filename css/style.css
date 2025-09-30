@@ -32,7 +32,7 @@
     .brand{display:flex;gap:12px;align-items:center}
     .logo{
       width:44px;height:44px;border-radius:8px;
-      background:linear-gradient(135deg,var(--accent),#6a8cff);
+      background:linear-gradient(135deg,var(--accent),#4f20a5);
       display:flex;align-items:center;justify-content:center;
       font-weight:700;color:#012;
     }
@@ -160,3 +160,4 @@ footer {
       border-radius: 6px;
       cursor: pointer;
     }
+
