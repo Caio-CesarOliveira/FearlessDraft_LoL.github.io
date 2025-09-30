@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fearless Draft Lol</title>
+  <link rel="stylesheet" href="../static/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="brand">        
+        <div class="logo">DC</div>
+        <div>
+          <h1>Draft</h1>
+          <p class="lead">Picks & bans automáticos (5x5)</p>
+        </div>
+      </div>
+      <button id="resetBtn">Resetar</button>
+      <button id="fearlessBtn">Fearless Bans</button>
+    </header>
+
+    <div id="stepInfo" style="grid-column:1/-1;"></div>
+
+    <div id="fearlessDisplay">
+      <h3>Fearless Bans</h3>
+      <div id="fearlessIcons"></div>
+    </div>
+
+    <!-- Blue -->
+    <aside class="panel">
+  <h2 class="blue-title">Blue Side</h2>
+  <div class="team">
+    <div class="picks" id="blueSlots"></div>
+    <div class="bans" id="blueBans"></div>
+  </div>
+</aside>
+
+    <!-- Center -->
+    <main class="center panel">
+      <div class="searchbar">
+        <input id="search" placeholder="Pesquisar campeões"/>
+      </div>
+      <div id="champGrid" class="champ-grid"></div>
+    </main>
+
+    <!-- Red -->
+    <aside class="panel">
+  <h2 class="red-title">Red Side</h2>
+  <div class="team">
+    <div class="picks" id="redSlots"></div>
+    <div class="bans" id="redBans"></div>
+  </div>
+</aside>
+<footer>
+    <p>2025 Protocolo de Kyoto - Criado por Caio Cesar</p>
+  </footer>
+
+  <div id="fearlessPanel">
+    <h2>Banir Campeões (Fearless Draft)</h2>
+    <div id="fearlessList"></div>
+    <button onclick="toggleFearless()">Fechar</button>
+  </div>
+
+  <script>
+    const state={champions:{},picks:{blue:[],red:[],banBlue:[],banRed:[]},bannedGlobal:new Set(),version:null};
+
+    // Draft competitivo completo (10 bans, 10 picks)
+    const draftSteps=[
+      {team:'blue',mode:'ban',slot:0},
+      {team:'red', mode:'ban',slot:0},
+      {team:'blue',mode:'ban',slot:1},
+      {team:'red', mode:'ban',slot:1},
+      {team:'blue',mode:'ban',slot:2},
+      {team:'red', mode:'ban',slot:2},
+
+      {team:'blue',mode:'pick',slot:0},
+      {team:'red', mode:'pick',slot:0},
+      {team:'red', mode:'pick',slot:1},
+      {team:'blue',mode:'pick',slot:1},
+      {team:'blue',mode:'pick',slot:2},
+      {team:'red', mode:'pick',slot:2},
+
+      {team:'red', mode:'ban',slot:3},
+      {team:'blue',mode:'ban',slot:3},
+      {team:'red', mode:'ban',slot:4},
+      {team:'blue',mode:'ban',slot:4},
+
+      {team:'red', mode:'pick',slot:3},
+      {team:'blue',mode:'pick',slot:3},
+      {team:'blue',mode:'pick',slot:4},
+      {team:'red', mode:'pick',slot:4}
+    ];
+    let currentStep=0;
+
+    const champGrid=document.getElementById("champGrid");
+    const blueSlots=document.getElementById("blueSlots");
+    const redSlots=document.getElementById("redSlots");
+    const blueBans=document.getElementById("blueBans");
+    const redBans=document.getElementById("redBans");
+    const stepInfo=document.getElementById("stepInfo");
+    const fearlessList=document.getElementById("fearlessList");
+    const fearlessIcons=document.getElementById("fearlessIcons");
+
+    function makeSlots(container,n,cls){
+      container.innerHTML='';
+      for(let i=0;i<n;i++){
+        const div=document.createElement("div");
+        div.className=cls;
+        div.dataset.index=i;
+        div.innerHTML=`<div style="width:40px;height:40px;border-radius:6px;background:#111;color:#555;display:flex;align-items:center;justify-content:center">?</div>`;
+        if(cls==="slot") div.innerHTML+=`<div style="flex:1"><div class="name">--</div></div>`;
+        container.appendChild(div);
+      }
+    }
+    makeSlots(blueSlots,5,"slot");
+    makeSlots(redSlots,5,"slot");
+    makeSlots(blueBans,5,"ban-slot");
+    makeSlots(redBans,5,"ban-slot");
+
+    function getChampImg(file){
+      return `https://ddragon.leagueoflegends.com/cdn/${state.version}/img/champion/${file}`;
+    }
+
+    function updateStep(){
+      if(currentStep<draftSteps.length){
+        let s=draftSteps[currentStep];
+        stepInfo.textContent=`Etapa: ${s.team.toUpperCase()} ${s.mode.toUpperCase()} ${s.slot+1}`;
+      }else stepInfo.textContent="Draft concluído!";
+    }
+
+    function render(){
+      [...blueSlots.children].forEach((slot,i)=>{
+        let id=state.picks.blue[i];
+        if(id){
+          const champ=state.champions[id];
+          slot.innerHTML=`<img src="${getChampImg(champ.image.full)}"><div><div class="name">${champ.name}</div></div>`;
+        }
+      });
+      [...redSlots.children].forEach((slot,i)=>{
+        let id=state.picks.red[i];
+        if(id){
+          const champ=state.champions[id];
+          slot.innerHTML=`<img src="${getChampImg(champ.image.full)}"><div><div class="name">${champ.name}</div></div>`;
+        }
+      });
+      [...blueBans.children].forEach((slot,i)=>{
+        let id=state.picks.banBlue[i];
+        if(id){
+          const champ=state.champions[id];
+          slot.innerHTML=`<img src="${getChampImg(champ.image.full)}">`;
+        }
+      });
+      [...redBans.children].forEach((slot,i)=>{
+        let id=state.picks.banRed[i];
+        if(id){
+          const champ=state.champions[id];
+          slot.innerHTML=`<img src="${getChampImg(champ.image.full)}">`;
+        }
+      });
+    }
+
+    function champClick(id){
+      if(currentStep>=draftSteps.length) return;
+      if(state.bannedGlobal.has(id)) return; // não deixa selecionar
+      const step=draftSteps[currentStep];
+      if(step.mode==="pick"){
+        state.picks[step.team][step.slot]=id;
+      }else{
+        if(step.team==="blue") state.picks.banBlue[step.slot]=id;
+        else state.picks.banRed[step.slot]=id;
+      }
+      currentStep++;
+      render();
+      updateStep();
+    }
+
+    function renderGrid(filter=""){
+  champGrid.innerHTML="";
+  Object.values(state.champions)
+    .filter(champ => champ.name.toLowerCase().includes(filter.toLowerCase()))
+    .forEach(champ=>{
+      const div=document.createElement("div");
+      div.className="champ";
+      div.innerHTML=`<img src="${getChampImg(champ.image.full)}"><div class="cname">${champ.name}</div>`;
+      div.onclick=()=>champClick(champ.id);
+      champGrid.appendChild(div);
+    });
+}
+
+// evento de busca
+document.getElementById("search").addEventListener("input", e=>{
+  renderGrid(e.target.value);
+});
+
+
+    async function load(){
+      const v=await (await fetch("https://ddragon.leagueoflegends.com/api/versions.json")).json();
+      state.version=v[0];
+      const data=await (await fetch(`https://ddragon.leagueoflegends.com/cdn/${state.version}/data/en_US/champion.json`)).json();
+      state.champions=data.data;
+      renderGrid(); updateStep();
+    }
+    load();
+
+    document.getElementById("resetBtn").onclick=()=>location.reload();
+
+function renderFearlessList(){
+      fearlessList.innerHTML="";
+      Object.values(state.champions).forEach(champ=>{
+        const row=document.createElement("div");
+        row.className="fearless-champ";
+        row.innerHTML=`
+          <img src="${getChampImg(champ.image.full)}">
+          <label><input type="checkbox" ${state.bannedGlobal.has(champ.id)?"checked":""}> ${champ.name}</label>
+        `;
+        row.querySelector("input").onchange=(e)=>{
+          if(e.target.checked) state.bannedGlobal.add(champ.id);
+          else state.bannedGlobal.delete(champ.id);
+          renderGrid(document.getElementById("search").value);
+          renderFearlessDisplay();
+        };
+        fearlessList.appendChild(row);
+      });
+      renderFearlessDisplay();
+    }
+
+    function renderFearlessDisplay(){
+      fearlessIcons.innerHTML="";
+      state.bannedGlobal.forEach(id=>{
+        const champ=state.champions[id];
+        if(champ){
+          const img=document.createElement("img");
+          img.src=getChampImg(champ.image.full);
+          img.title=champ.name;
+          fearlessIcons.appendChild(img);
+        }
+      });
+    }
+
+    function toggleFearless(){
+      const panel=document.getElementById("fearlessPanel");
+      panel.classList.toggle("active");
+      if(panel.classList.contains("active")) renderFearlessList();
+    }
+
+    document.getElementById("fearlessBtn").onclick=toggleFearless;
+    document.getElementById("search").addEventListener("input", e=>{
+      renderGrid(e.target.value);
+    });
+
+    async function load(){
+      const v=await (await fetch("https://ddragon.leagueoflegends.com/api/versions.json")).json();
+      state.version=v[0];
+      const data=await (await fetch(`https://ddragon.leagueoflegends.com/cdn/${state.version}/data/en_US/champion.json`)).json();
+      state.champions=data.data;
+      renderGrid(); updateStep();
+    }
+    load();
+
+
+    document.getElementById("resetBtn").onclick=()=>location.reload();
+  </script>
+</body>
+</html>
